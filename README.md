@@ -82,3 +82,72 @@ Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the Apache-2.0
 license, shall be dual licensed as above, without any additional terms or
 conditions.
+
+
+### 使用方法
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WASM MD5 Test</title>
+</head>
+<body>
+<h1>WASM MD5 Test</h1>
+<input type="file" id="fileInput">
+<p>MD5: <span id="md5Result"></span></p>
+<button >a</button>
+<script type="module">
+  import init, { calculate_md5, calculate_md5_from_chunks } from './pkg/wasm_file_md5.js';
+
+  async function run() {
+    await init();
+
+    const fileInput = document.getElementById('fileInput');
+    const md5Result = document.getElementById('md5Result');
+
+    fileInput.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const startTime = performance.now();
+        const md5 = await calculateMD5WithStream(file);
+        const endTime = performance.now();
+        md5Result.textContent = `MD5: ${md5}, time: ${endTime - startTime}ms`;
+
+      } catch (error) {
+        console.error("Error reading file:", error);
+        md5Result.textContent = "Error reading file: " + error.message;
+      }
+    });
+
+
+    async function calculateMD5WithStream(file) {
+      const stream = file.stream();
+      const reader = stream.getReader();
+      const chunks = [];
+
+      try {
+        while(true) {
+          const { done, value } = await reader.read();
+          if(done) {
+            break;
+          }
+          chunks.push(value);
+        }
+        return calculate_md5_from_chunks(chunks);
+      } catch (error) {
+        console.error("Error reading stream:", error);
+        throw error;
+      } finally {
+        reader.releaseLock();
+      }
+    }
+  }
+
+  run();
+</script>
+</body>
+</html>
+
+```
